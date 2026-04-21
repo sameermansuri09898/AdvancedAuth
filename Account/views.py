@@ -9,16 +9,33 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from Account.utils import send_otp_email,random_otp
+from Account.models import User
+from .serializer import VerifyOTPSerializer
 
 class register(APIView):
     def post(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+
             otp = random_otp()
+            user.otp = otp
+            user.save()
             send_otp_email(user.email, otp)
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class verify_otp(APIView):
+    def post(self, request):
+        email = request.data.get('email')
+        otp = request.data.get('otp')
+
+        if not email or not otp:
+            return Response(
+                {"error": "Email and OTP are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 class login(APIView):
     def post(self, request):
@@ -27,6 +44,8 @@ class login(APIView):
             username = serializer.validated_data['username']
             password = serializer.validated_data['password']
             user = authenticate(request, username=username, password=password)
+            if not user.is_verified:
+                return Response({'detail': 'User is not verified'}, status=status.HTTP_400_BAD_REQUEST)
             if user:
                 refresh = RefreshToken.for_user(user)
                 return Response({

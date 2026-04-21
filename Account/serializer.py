@@ -1,6 +1,10 @@
 
 from rest_framework import serializers
-from .models import User
+from .models import User,Otp
+from Account.utils import send_otp_email,random_otp
+from django.contrib.auth import get_user_model
+
+User=get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True)
@@ -34,8 +38,8 @@ class UserSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        confirm_password = validated_data.pop('confirm_password')
-        user = User.objects.create_user(**validated_data)
+        validated_data.pop('confirm_password')
+        user = User.objects.create_user(**validated_data,is_verified=False)
         return user
 
 class LoginSerializer(serializers.Serializer):
@@ -45,3 +49,20 @@ class LoginSerializer(serializers.Serializer):
     class Meta:
         model = User
         fields = ['username', 'password']
+
+class VerifyOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=4)
+
+    def validate(self,attrs):
+        email=attrs.get('email')
+        otp=attrs.get('otp')
+
+        try:
+            user=User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User not found")    
+
+        return attrs
+
+    
