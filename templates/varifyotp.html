@@ -1,0 +1,172 @@
+<!-- verifyotp.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OTP Verification</title>
+
+  <!-- Bootstrap CDN -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  >
+
+  <style>
+    body{
+      background:#f4f6f9;
+    }
+
+    .otp-container{
+      max-width:450px;
+      margin:70px auto;
+      padding:30px;
+      background:#fff;
+      border-radius:12px;
+      box-shadow:0 5px 20px rgba(0,0,0,0.1);
+    }
+
+    .title{
+      text-align:center;
+      font-weight:bold;
+      margin-bottom:20px;
+    }
+
+    .msg{
+      font-size:14px;
+      margin-top:10px;
+      text-align:center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="otp-container">
+
+    <h3 class="title">Verify OTP</h3>
+
+    <form id="otpForm">
+
+      <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input
+          type="email"
+          class="form-control"
+          name="email"
+          required
+        >
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Enter OTP</label>
+        <input
+          type="text"
+          class="form-control"
+          name="otp"
+          maxlength="6"
+          required
+        >
+      </div>
+
+      <button type="submit" class="btn btn-success w-100">
+        Verify OTP
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-outline-primary w-100 mt-2"
+        id="resendBtn"
+      >
+        Resend OTP
+      </button>
+
+      <div class="msg text-success" id="successMsg"></div>
+      <div class="msg text-danger" id="errorMsg"></div>
+
+    </form>
+
+  </div>
+</div>
+
+<script>
+const otpForm = document.getElementById("otpForm");
+const successMsg = document.getElementById("successMsg");
+const errorMsg = document.getElementById("errorMsg");
+const resendBtn = document.getElementById("resendBtn");
+
+/* VERIFY OTP */
+otpForm.addEventListener("submit", function(e){
+    e.preventDefault();
+
+    successMsg.innerHTML = "";
+    errorMsg.innerHTML = "";
+
+    const data = {
+        email: this.email.value,
+        otp: this.otp.value
+    };
+
+    fetch("http://127.0.0.1:8000/api/verifyotp/", {
+        method: "POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.msg){
+            successMsg.innerHTML = data.msg;
+
+            setTimeout(()=>{
+                window.location.href = "login.html";
+            },1500);
+
+        }else{
+            errorMsg.innerHTML = JSON.stringify(data);
+        }
+    })
+    .catch(err=>{
+        errorMsg.innerHTML = "Something went wrong";
+    });
+});
+
+
+/* RESEND OTP */
+resendBtn.addEventListener("click", function(){
+
+    successMsg.innerHTML = "";
+    errorMsg.innerHTML = "";
+
+    const email = otpForm.email.value;
+
+    if(!email){
+        errorMsg.innerHTML = "Please enter email first";
+        return;
+    }
+
+    fetch("http://127.0.0.1:8000/api/resendotp/", {
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body: JSON.stringify({email: email})
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.msg){
+            successMsg.innerHTML = data.msg;
+        }else{
+            errorMsg.innerHTML = JSON.stringify(data);
+        }
+    })
+    .catch(err=>{
+        errorMsg.innerHTML = "Failed to resend OTP";
+    });
+
+});
+</script>
+
+</body>
+</html>
