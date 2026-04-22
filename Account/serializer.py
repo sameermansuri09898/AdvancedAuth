@@ -104,6 +104,51 @@ class ResendOtpSerializer(serializers.Serializer):
         return value
             
 
-           
+class passwordchange(serializers.Serializer):
+    email=serializers.EmailField()
+    old_password=serializers.CharField()
+    new_password=serializers.CharField()
+    confirm_new_password=serializers.CharField()
+
+
+
+    def validate(self,attrs):
+        user=self.context['request'].user
+        email=attrs.get('email')
+        old_password=attrs.get('old_password')
+        new_password=attrs.get('new_password')
+        confirm_new_password=attrs.get('confirm_new_password')
+
+        if new_password != confirm_new_password:
+            raise serializers.ValidationError("Confirm password not matched")
+
+        if not email or not old_password or not new_password or not confirm_new_password:
+            raise serializers.ValidationError("All fields are required")
+
+        user=User.objects.filter(email=email).first()
+        if user is None:
+            raise serializers.ValidationError("User not found")    
+
+        if not user.check_password(old_password):
+            raise serializers.ValidationError("Invalid old password")
+        
+        if old_password == new_password:
+            raise serializers.ValidationError("New password should not be same as old password")
+        #  wrong methid ye sirf validate krta hai not save
+        attrs['user']=user
+        return attrs
+        
+    def save(self):
+        user=self.validated_data['user']
+        new_password = self.validated_data['new_password']
+        user.set_password(new_password)
+        user.save()   
+        return {'msg':'Password changed successfully'}
+        
+        
+
+
+
+
 
         

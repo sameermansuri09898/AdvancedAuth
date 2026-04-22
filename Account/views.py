@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from Account.utils import send_otp_email,random_otp
 from Account.models import User,Otp
-from .serializer import Otpserializer,ResendOtpSerializer
+from .serializer import Otpserializer,ResendOtpSerializer,passwordchange
 
 class register(APIView):
     def post(self, request):
@@ -98,3 +98,15 @@ class logout(APIView):
                 {"error": "Invalid or expired token"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+
+class ChangePasswordView(APIView):
+    permission_classes=[IsAuthenticated]
+    authentication_classes=[JWTAuthentication]
+
+    def post(self,request):
+        serializer=passwordchange(data=request.data,context={'request':request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'msg':'Password changed successfully'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)        
