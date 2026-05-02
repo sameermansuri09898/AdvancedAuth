@@ -68,6 +68,8 @@ class Otpserializer(serializers.Serializer):
 
         if userobject is None:   
             raise serializers.ValidationError("Invalid OTP")
+        if user.is_varified:
+            raise serializers.ValidationError("User is Already Verified")
 
         if userobject.is_otp_expired():
             raise serializers.ValidationError("OTP has expired")   
@@ -97,8 +99,10 @@ class ResendOtpSerializer(serializers.Serializer):
             raise serializers.ValidationError("User is already verified")
 
         lastotp=Otp.objects.filter(user=user).last()    
-        if lastotp and lastotp.otp_created_at+timezone.timedelta(seconds=60) < timezone.now():
-            raise serializers.ValidationError("Wait for 60 seconds to resend OTP")   
+        time_limit = lastotp.created_at + timezone.timedelta(seconds=60)   
+        if time_limit >= timezone.now():
+            seconds_remaining = (time_limit - timezone.now()).total_seconds()
+            raise serializers.ValidationError(f"Wait for {int(seconds_remaining)} seconds to resend OTP")  
 
         self.user = user 
         return value
